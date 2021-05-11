@@ -5,7 +5,7 @@ import 'phaser';
 import IGame from '../Fabrique/IGame';
 import LoaderHelper from '../Fabrique/LoaderHelper';
 import Menu from './Menu';
-import { Constants, Images, Atlases, Sounds } from '../Data';
+import {Constants, Images, Atlases, Sounds, Sprites} from '../Data';
 import SaveDataManager from '../Managers/SaveDataManager';
 
 export default class Boot extends Phaser.State {
@@ -229,6 +229,9 @@ export default class Boot extends Phaser.State {
 
                 Images.list.forEach((assetName: string) => {
                     this.game.load.image(assetName, 'assets/images/' + scale + assetName + '.png');
+                });
+                Sprites.list.forEach((assetName: string) => {
+                    this.game.load.image(assetName, 'assets/sprites/' + scale + assetName + '.png');
                 });
 
                 Atlases.list.forEach((assetName: string) => {
