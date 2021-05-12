@@ -21,6 +21,7 @@ export default class Gameplay extends Phaser.State {
 
     private background: Phaser.Image;
     private text: Label;
+    private rewardGroup: Phaser.Group;
     // private backBtn: LabeledButton;
 
     private hero: any = {
@@ -37,7 +38,7 @@ export default class Gameplay extends Phaser.State {
     }
     public preload(): void {
         this.load.image('mert_photo1', 'assets/sprites/mert_photo.png');
-        this.load.image('mert_photo2', 'assets/sprites/mert_photo2.png');
+        this.load.image('mert_photo2', 'assets/sprites/mert_photo_second.png');
         this.load.spritesheet('character', 'assets/sprites/spritesheet.png', 306, 306, 41);
 
     }
@@ -45,7 +46,7 @@ export default class Gameplay extends Phaser.State {
     public init(): void {
         this.game.world.removeAll();
         //Play background music
-        this.randomSpawn();
+
         SoundManager.getInstance().playMusic(Sounds.GameMusic);
     }
 
@@ -60,10 +61,14 @@ export default class Gameplay extends Phaser.State {
         this.background = this.game.add.image(0, 0, Atlases.Interface, 'bg_blue');
         this.hero.sprite = this.game.add.sprite(0, 0, 'character');
 
+        this.rewardGroup = this.game.add.group();
+        this.game.physics.enable(this.hero.sprite);
+        this.game.physics.arcade.enable(this.hero.sprite);
         this.hero.sprite.animations.add('idle', [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27], 3, true);
         this.hero.sprite.animations.add('walking', [28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41], 5, true);
         this.hero.sprite.animations.add('attack', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], 3, true);
-
+        this.hero.sprite.body.collideWorldBounds = true;
+        this.randomSpawn();
         let textStyle: any = {font: 'bold ' + 30 * Constants.GAME_SCALE + 'px Arial', fill: '#FFFFFF'};
 
         this.text = new Label(this.game, 0, 0, 'time_to_play', textStyle);
@@ -75,9 +80,32 @@ export default class Gameplay extends Phaser.State {
         this.resize();
     }
 
-    public update(): void {
-        // this.game.input.keyboard.onDownCallback = this.somethingWasPressed;
+    public randomSpawn(): void {
+        let category: number = Phaser.Math.between(1, 2);
+        let x: number = Phaser.Math.between(0, this.game.width - 100);
+        let y: number = Phaser.Math.between(0, this.game.height - 100);
+        let reward: any;
+        if (category === 1) {
+            reward = this.game.add.sprite(x, y, 'mert_photo1');
+            this.game.physics.arcade.enable(reward);
+            reward.scale.setTo(0.5, 0.5);
+            this.rewardGroup.add(reward);
 
+        } else {
+            reward = this.game.add.sprite(x, y, 'mert_photo2');
+            this.game.physics.arcade.enable(reward);
+            reward.scale.setTo(0.3, 0.3);
+            this.rewardGroup.add(reward);
+
+        }
+        this.hero.sprite.bringToTop();
+    }
+
+
+    public update(): void {
+
+        // this.game.input.keyboard.onDownCallback = this.somethingWasPressed;
+        this.game.physics.arcade.collide(this.hero.sprite, this.rewardGroup.getTop(), this.collisionHandler, null, this);
         if (this.attackButton.isDown) {
             console.log('mert');
             this.hero.sprite.animations.play('attack', 60, false);
@@ -106,6 +134,14 @@ export default class Gameplay extends Phaser.State {
         } else if (this.cursors.down.isDown) {
 
             this.hero.sprite.y += speed;
+        }
+
+    }
+
+    public collisionHandler(obj1: any, obj2: any): void {
+        if (this.attackButton.isDown) {
+            obj2.visible = false;
+            this.randomSpawn();
         }
 
     }
