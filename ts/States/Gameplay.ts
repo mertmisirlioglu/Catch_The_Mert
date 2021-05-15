@@ -3,14 +3,15 @@ import 'pixi';
 import 'phaser';
 
 import IGame from '../Fabrique/IGame';
-import Label from '../Objects/Label';
+// import Label from '../Objects/Label';
 // import Label from '../Objects/LabeledButton';
-import SoundManager from '../Managers/SoundManager';
 
-import {Sounds, Constants, Atlases} from '../Data';
+
+// import {Sounds, Constants, Atlases} from '../Data';
 // import {Menu} from './';
 
 let speed: number = 6;
+const gameState: any = { score: 0 };
 
 export default class Gameplay extends Phaser.State {
     public static Name: string = 'gameplay';
@@ -20,7 +21,7 @@ export default class Gameplay extends Phaser.State {
     public game: IGame;
 
     private background: Phaser.Image;
-    private text: Label;
+    // private text: Label;
     private rewardGroup: Phaser.Group;
     // private backBtn: LabeledButton;
 
@@ -32,6 +33,7 @@ export default class Gameplay extends Phaser.State {
 
     private cursors: Phaser.CursorKeys;
     private attackButton: Phaser.Key;
+    private reward_music: any;
 
     constructor() {
         super();
@@ -39,7 +41,9 @@ export default class Gameplay extends Phaser.State {
     public preload(): void {
         this.load.image('mert_photo1', 'assets/sprites/mert_photo.png');
         this.load.image('mert_photo2', 'assets/sprites/mert_photo_second.png');
+        this.load.image('bg_game', 'assets/sprites/bg_game.png');
         this.load.spritesheet('character', 'assets/sprites/spritesheet.png', 306, 306, 41);
+        this.load.audio('reward_voice', 'assets/sound/reward.mp3');
 
     }
 
@@ -47,7 +51,6 @@ export default class Gameplay extends Phaser.State {
         this.game.world.removeAll();
         //Play background music
 
-        SoundManager.getInstance().playMusic(Sounds.GameMusic);
     }
 
     public create(): void {
@@ -58,7 +61,7 @@ export default class Gameplay extends Phaser.State {
         //Send a screen view to Google to track different states
         // this.game.analytics.google.sendScreenView(this.name);
 
-        this.background = this.game.add.image(0, 0, Atlases.Interface, 'bg_blue');
+        this.background = this.game.add.sprite(0, 0,'bg_game');
         this.hero.sprite = this.game.add.sprite(0, 0, 'character');
 
         this.rewardGroup = this.game.add.group();
@@ -68,10 +71,13 @@ export default class Gameplay extends Phaser.State {
         this.hero.sprite.animations.add('walking', [28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41], 5, true);
         this.hero.sprite.animations.add('attack', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], 3, true);
         this.hero.sprite.body.collideWorldBounds = true;
-        this.randomSpawn();
-        let textStyle: any = {font: 'bold ' + 30 * Constants.GAME_SCALE + 'px Arial', fill: '#FFFFFF'};
 
-        this.text = new Label(this.game, 0, 0, 'time_to_play', textStyle);
+        this.game.time.events.add(0, this.functionDestroyCreateReward, this);
+        gameState.scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '36px', fill: '#000000' });
+        // let textStyle: any = {font: 'bold ' + 30 * Constants.GAME_SCALE + 'px Arial', fill: '#FFFFFF'};
+        this.reward_music = this.game.add.sound('reward_voice');
+
+        // this.text = new Label(this.game, 0, 0, 'time_to_play', textStyle);
         this.cursors = this.game.input.keyboard.createCursorKeys();
         this.attackButton = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
         // this.backBtn = new LabeledButton(this.game, 0, 0, 'back', textStyle, this.startMenu, this, 300, 100);
@@ -80,7 +86,7 @@ export default class Gameplay extends Phaser.State {
         this.resize();
     }
 
-    public randomSpawn(): void {
+    public randomSpawn(): any {
         let category: number = Phaser.Math.between(1, 2);
         let x: number = Phaser.Math.between(0, this.game.width - 100);
         let y: number = Phaser.Math.between(0, this.game.height - 100);
@@ -99,8 +105,8 @@ export default class Gameplay extends Phaser.State {
 
         }
         this.hero.sprite.bringToTop();
+        return reward;
     }
-
 
     public update(): void {
 
@@ -138,10 +144,23 @@ export default class Gameplay extends Phaser.State {
 
     }
 
+    public functionDestroyCreateReward(reward: any): any {
+        if (reward != null) {
+            reward.kill();
+        }
+        let new_reward: any = this.randomSpawn();
+        this.game.time.events.add(2000, this.functionDestroyCreateReward, this, new_reward);
+
+    }
+
     public collisionHandler(obj1: any, obj2: any): void {
         if (this.attackButton.isDown) {
-            obj2.visible = false;
-            this.randomSpawn();
+            obj2.kill();
+            this.reward_music.play();
+            gameState.score += 10;
+            gameState.scoreText.setText(`Score: ${gameState.score}`);
+            console.log('killed');
+
         }
 
     }
@@ -163,8 +182,10 @@ export default class Gameplay extends Phaser.State {
         this.hero.sprite.x = 300;
         this.hero.sprite.y = 300;
         this.hero.sprite.scale.setTo(0.7, 0.7);
-        this.text.alignIn(this.world.bounds, Phaser.TOP_RIGHT);
-
+        // this.text.alignIn(this.world.bounds, Phaser.TOP_RIGHT);
+        gameState.scoreText.alignIn(this.world.bounds, Phaser.TOP_RIGHT);
+        gameState.scoreText.anchor.setTo(1, 0);
+        gameState.scoreText.y += 30;
         // this.backBtn.x = this.game.width / 2;
         // this.backBtn.y = this.text.y + this.text.height + this.backBtn.height;
     }
@@ -173,7 +194,7 @@ export default class Gameplay extends Phaser.State {
         super.shutdown();
 
         this.background = null;
-        this.text = null;
+        // this.text = null;
         // this.backBtn = null;
     }
 }
